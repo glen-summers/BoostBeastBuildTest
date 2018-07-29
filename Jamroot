@@ -1,0 +1,22 @@
+using msvc ;
+
+project
+    : default-build 
+		<threading>multi 
+		<address-model>64
+		<architecture>x86
+		<link>static
+		<runtime-link>static
+		#<include>tmp/boost_1_67_0
+    ;
+
+using boost : 1.67 : <include>tmp/boost_1_67_0 <library>tmp/boost_1_67_0/stage/lib ;
+import boost ;
+boost.use-project 1.67 ;
+
+exe App1
+	: App1.cpp
+	: <library>/boost//system
+	: <define>BOOST_LIB_DIAGNOSTIC
+	: <cxxflags>/VERBOSE
+	;
