@@ -74,6 +74,11 @@ set BOOST_VER=boost_1_67_0
 set BOOST_ARCHIVE=%BOOST_VER%.7z
 set opt=--secure-protocol=auto --no-check-certificate
 
+rem use procedure
+for /F "tokens=1-4 delims=:.," %%a in ("%time%") do (
+   set /A "start=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+
 if exist %TMP%\%BOOST_ARCHIVE% goto :skipDl
 %bin%\wget.exe %URL%/%BOOST_ARCHIVE% -P %TMP% %OPT%
 if %ERRORLEVEL% NEQ 0 echo wget failed & exit /b 1
@@ -91,4 +96,16 @@ call .\bootstrap.bat || (echo Bootstrap failed & exit /b 1)
 
 rem if exist libs?
 call .\b2.exe || (echo B2 failed & exit /b 1)
+
+rem use procedure
+for /F "tokens=1-4 delims=:.," %%a in ("%time%") do (
+   set /A "end=(((%%a*60)+1%%b %% 100)*60+1%%c %% 100)*100+1%%d %% 100"
+)
+set /A elapsed=end-start
+set /A hh=elapsed/(60*60*100), rest=elapsed%%(60*60*100), mm=rest/(60*100), rest%%=60*100, ss=rest/100, cc=rest%%100
+if %mm% lss 10 set mm=0%mm%
+if %ss% lss 10 set ss=0%ss%
+if %cc% lss 10 set cc=0%cc%
+echo %hh%:%mm%:%ss%.%cc%
+
 exit /b 0
