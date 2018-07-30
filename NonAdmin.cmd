@@ -2,14 +2,20 @@
 cls
 setlocal EnableDelayedExpansion
 
-set INSTALLDIR=%~dp0chocoportable
+set BOOST_VER=boost_1_67_0
+set ROOT=%~dp0
+set INSTALLDIR=%ROOT%chocoportable
 set BIN=%INSTALLDIR%\bin
 set CHOCO=%BIN%\choco.exe
-set TMP=%~dp0tmp
+set TMP=%ROOT%tmp
+set BOOST=%TMP%\%BOOST_VER%
+set BUILD=%ROOT%bin
 
 if "%1" EQU "" call :InstallChoco & goto :eof
 if "%1" EQU "clean" call :Clean & goto :eof
 if "%1" equ "boost" call :InstallBoost & goto :eof
+if "%1" equ "build" call :Build & goto :eof
+if "%1" equ "ssl" call :Ssl & goto :eof
 echo Unknown: %1
 goto :eof
 
@@ -19,7 +25,7 @@ call :DeleteTree %TMP%
 goto :eof
 
 :InstallChoco
-if exist %CHOCO% echo Choco present & goto :eof
+if exist %CHOCO% echo Choco present & goto :skipChoc
 mkdir %INSTALLDIR%
 setx ChocolateyInstall %INSTALLDIR% 1>nul
 set ChocolateyInstall=%INSTALLDIR%
@@ -28,10 +34,11 @@ if %ERRORLEVEL% NEQ 0 echo install failed & goto :eof
 
 echo y|%CHOCO% feature disable -n=showNonElevatedWarnings
 if %ERRORLEVEL% NEQ 0 echo feature disable failed & goto :eof
+echo installed
 
+:skipChoc
 %CHOCO% install 7zip.portable;wget -y
 if %ERRORLEVEL% NEQ 0 echo install failed & goto :eof
-echo installed
 goto :eof
 
 :RemoveChoco
@@ -70,7 +77,6 @@ exit /b 0
 
 :InstallBoost
 set URL=https://dl.bintray.com/boostorg/release/1.67.0/source
-set BOOST_VER=boost_1_67_0
 set BOOST_ARCHIVE=%BOOST_VER%.7z
 set opt=--secure-protocol=auto --no-check-certificate
 
@@ -108,4 +114,23 @@ if %ss% lss 10 set ss=0%ss%
 if %cc% lss 10 set cc=0%cc%
 echo %hh%:%mm%:%ss%.%cc%
 
+exit /b 0
+
+:build
+call :DeleteTree %BUILD%
+pushd %ROOT%
+%BOOST%\b2.exe release -sBOOST_ROOT=%BOOST% -d2 || (echo B2 failed & exit /b 1)
+%BUILD%\msvc-14.1\release\address-model-64\architecture-x86\link-static\runtime-link-static\threading-multi\app1.exe || (echo app1 failed & exit /b 1)
+exit /b 0
+
+:ssl
+set URL=https://www.openssl.org/source
+set ARCHIVE=openssl-1.1.0h
+set OPT=--secure-protocol=auto --no-check-certificate
+if not exist %TMP%\%ARCHIVE%.tar.gz %bin%\wget.exe %URL%/%ARCHIVE%.tar.gz -P %TMP% %OPT% || (echo wget failed & exit /b 1)
+if not exist %TMP%\%ARCHIVE%.tar %bin%\7z.exe x -aos -o%TMP% %TMP%\%ARCHIVE%.tar.gz || (echo Extract failed & exit /b 1)
+if not exist %TMP%\%ARCHIVE%\nul %bin%\7z.exe x -aos -o%TMP% %TMP%\%ARCHIVE%.tar || (echo Extract failed & exit /b 1)
+::if not exist %TMP%\%ARCHIVE%\include\openssl\opensslconf.h ....
+::http://strawberryperl.com/download/5.28.0.1/strawberry-perl-5.28.0.1-64bit-portable.zip
+::http://developer.covenanteyes.com/building-openssl-for-visual-studio/
 exit /b 0
