@@ -95,7 +95,10 @@ if not exist %TMP%\%BOOST_VER_UND% %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%BOOS
 pushd %TMP%\%BOOST_VER_UND%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
-call .\b2.exe || (echo B2 Boost build failed & exit /b 1)
+
+set B2_OPTS=variant=release link=static threading=multi runtime-link=static address-model=64 architecture=x86 --with-system
+
+call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 call :TimingEnd
 exit /b 0
 
