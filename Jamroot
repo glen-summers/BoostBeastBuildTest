@@ -8,14 +8,17 @@ project
 		<link>static
 		<runtime-link>static
 		<include>tmp/openssl/include
+		<library-path>tmp/openssl/lib
     ;
 
 using boost : 1.67 : <include>tmp/boost_1_67_0 <library>tmp/boost_1_67_0/stage/lib ;
 import boost ;
 boost.use-project 1.67 ;
 
+lib libcrypto ;
+
 exe App1
-	: App1.cpp
+	: App1.cpp libcrypto
 	: <library>/boost//system
 	: <define>BOOST_LIB_DIAGNOSTIC
 	: <cxxflags>/VERBOSE

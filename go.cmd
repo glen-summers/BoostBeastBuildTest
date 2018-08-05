@@ -43,12 +43,16 @@ call :%1 || exit /b 1
 exit /b 0
 
 :default
+call :TimingStart
+
 call :InstallChoco || exit /b 1
 call :InstallBoost || exit /b 1
 call :InstallPerl || exit /b 1
 call :InstallSsl  || exit /b 1
 
 call :build || exit /b 1
+
+call :TimingEnd
 exit /b 0
 
 :Clean
@@ -98,8 +102,6 @@ exit /b 0
 :InstallBoost
 echo %0
 
-call :TimingStart
-
 if not exist %TMP%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TMP% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
 if not exist %TMP%\%BOOST_VER_UND% %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
 ::pops ok on error?
@@ -110,7 +112,9 @@ rem if exist libs?
 set B2_OPTS=variant=release link=static threading=multi runtime-link=static address-model=64 architecture=x86 --with-system
 
 call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
-call :TimingEnd
+
+:: boost build seems to try and link without the x64 in the lib file name, differing to auto_link.hpp rules when used in visual studio!
+copy stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib stage\lib\libboost_system-vc141-mt-s-1_67.lib || (echo lib copy failed & exit /b 1)
 exit /b 0
 
 :InstallPerl
