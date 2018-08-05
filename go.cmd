@@ -12,7 +12,7 @@ set ROOT=%~dp0
 set TMP=%ROOT%tmp
 set BUILD=%ROOT%bin
 
-set CHOCO_DIR=%ROOT%chocoportable
+set CHOCO_DIR=%TMP%\chocoportable
 set CHOCO_BIN=%CHOCO_DIR%\bin
 set CHOCO=%CHOCO_BIN%\choco.exe
 set ChocoPackages=7zip.portable;wget
@@ -48,7 +48,7 @@ call :TimingStart
 call :InstallChoco || exit /b 1
 call :InstallBoost || exit /b 1
 call :InstallPerl || exit /b 1
-call :InstallSsl  || exit /b 1
+call :InstallSsl || exit /b 1
 
 call :build || exit /b 1
 
@@ -70,14 +70,12 @@ pushd %ROOT%
 %BUILD%\msvc-14.1\release\address-model-64\architecture-x86\link-static\runtime-link-static\threading-multi\app1.exe || (echo app1 failed & exit /b 1)
 exit /b 0
 
-
 :build2
 echo %0
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 pushd %ROOT%
 md bin\build2\release
 cl App1.cpp -Fo"bin\build2\release\App1.obj" -TP /O2 /Ob2 /W3 /GR /MT /Zc:forScope /Zc:wchar_t /favor:blend /wd4675 /EHs -c -DBOOST_ALL_NO_LIB -DNDEBUG -Itmp\boost_1_67_0 -Itmp\openssl\include || (echo cl failed & exit /b 1)
-
 link bin\build2\release\App1.obj tmp\boost_1_67_0\stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib || (echo link failed && exit /b 1)
 exit /b 0
 
