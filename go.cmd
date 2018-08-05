@@ -61,9 +61,10 @@ call :DeleteTree %TMP%
 call :DeleteTree %BUILD%
 exit /b 0
 
+:rebuild
+call :DeleteTree %BUILD% || (echo Clean failed & exit /b 1)
 :build
 echo %0
-call :DeleteTree %BUILD% || (echo Clean failed & exit /b 1)
 pushd %ROOT%
 %BOOST%\b2.exe release -sBOOST_ROOT=%BOOST% -d2 || (echo B2 failed & exit /b 1)
 ::var

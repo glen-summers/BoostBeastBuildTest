@@ -23,6 +23,4 @@ lib libcrypto ;
 exe App1
 	: App1.cpp libssl libcrypto
 	: <library>/boost//system
-	: <define>BOOST_LIB_DIAGNOSTIC
-	: <cxxflags>/VERBOSE
 	;
