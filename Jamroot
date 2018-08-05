@@ -1,5 +1,7 @@
 using msvc ;
 
+# use pch, add multiple test apps
+
 project
     : requirements
 		<threading>multi 
@@ -15,10 +17,11 @@ using boost : 1.67 : <include>tmp/boost_1_67_0 <library>tmp/boost_1_67_0/stage/l
 import boost ;
 boost.use-project 1.67 ;
 
+lib libssl ;
 lib libcrypto ;
 
 exe App1
-	: App1.cpp libcrypto
+	: App1.cpp libssl libcrypto
 	: <library>/boost//system
 	: <define>BOOST_LIB_DIAGNOSTIC
 	: <cxxflags>/VERBOSE
