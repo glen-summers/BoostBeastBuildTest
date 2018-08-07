@@ -1,7 +1,8 @@
 # BoostBeastBuildTest
 
-After being frustrated by struggling to compile boost beast web\websocket samples that include use of OpenSSL and targeting Windows I created a script to download and build dependencies from the original source
-Base requirement is that VisualStudio 2017 is installed, which is located by VsWhere https://github.com/Microsoft/vswhere
+After being frustrated by struggling to compile boost beast web\websocket samples that include use of OpenSSL and targeting Windows I created a script to download and build dependencies from the original source.
+
+The base requirement is that VisualStudio 2017 is installed, which is located by VsWhere https://github.com/Microsoft/vswhere
 
 The sequence is:
 * Bootstrap a non-admin Chocolatey install https://chocolatey.org/docs/installation#non-administrative-install
