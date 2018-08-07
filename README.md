@@ -1,8 +1,8 @@
 # BoostBeastBuildTest
-After being frustrated by struggling to compile boost beast web\websocket samples that include use of OpenSSL and targeting Windows I created a script to download and build dependencies from the original source.
+After being frustrated by struggling to compile boost beast web\websocket samples that include use of OpenSSL and targeting Windows I created a script to download and build dependencies from the original source. Thus capturing the build requirements in a re-runnable reproducible test sequence.
 
 The base requirement is that VisualStudio 2017 is already installed, which is located by VsWhere https://github.com/Microsoft/vswhere
-Primary requirements are none of the steps require admin privilege and the script is incrementally re-runnable.
+Primary requirements are that none of the steps require admin privilege and the script is incrementally re-runnable.
 
 The sequence is:
 * Bootstrap a non-admin Chocolatey install https://chocolatey.org/docs/installation#non-administrative-install
