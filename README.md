@@ -15,8 +15,13 @@ The sequence is:
 * Build OpenSSL from a Visual Studio command prompt
 * Build sample application using Boost Build and run executable
 
-Caveat
+##Caveat
+
 Currently the build steps include a rename of the boost system lib from
 _libboost_system-vc141-mt-s-**x64**-1_67.lib_ to _libboost_system-vc141-mt-s-1_67.lib_
 This appears to be a bug in boost build where the emitted link dependency is missing the x64 part in the name
-When compiling inside visual studio it is ok as the boost/config/auto_link.hpp
+
+When compiling inside visual studio it is ok as the boost/config/auto_link.hpp includes:
+
+`BOOST_LIB_ARCH_AND_MODEL_OPT: The architecture and address model (-x32 or -x64 for x86/32 and x86/64 respectively)`
+
