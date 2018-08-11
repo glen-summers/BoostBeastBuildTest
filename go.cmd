@@ -108,7 +108,7 @@ pushd %TMP%\%BOOST_VER_UND%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
 
-set B2_OPTS=variant=release link=static threading=multi runtime-link=static address-model=64 architecture=x86 --with-system
+set B2_OPTS=variant=debug,release link=static threading=multi runtime-link=static address-model=64 architecture=x86 --with-system --with-date_time
 
 call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 
