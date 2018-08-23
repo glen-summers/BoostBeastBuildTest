@@ -2,6 +2,10 @@ using msvc ;
 
 # use pch, add multiple test apps
 
+import os ;
+local BOOST_LIBRARY_PATH = [ os.environ BOOST_LIBRARY_PATH ] ;
+local SSL_LIBRARY_PATH = [ os.environ SSL_LIBRARY_PATH ] ;
+
 project
     : requirements
 		<threading>multi 
@@ -9,11 +13,11 @@ project
 		<architecture>x86
 		<link>static
 		<runtime-link>static
-		<include>tmp/openssl/include
-		<library-path>tmp/openssl/lib
+		<include>$(SSL_LIBRARY_PATH)/include
+		<library-path>$(SSL_LIBRARY_PATH)/lib
     ;
 
-using boost : 1.67 : <include>tmp/boost_1_67_0 <library>tmp/boost_1_67_0/stage/lib ;
+using boost : 1.67 : <include>$(BOOST_LIBRARY_PATH) <library>$(BOOST_LIBRARY_PATH)/stage/lib ;
 import boost ;
 boost.use-project 1.67 ;
 

@@ -11,6 +11,12 @@ set VSWHERE_CMD="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.e
 set ROOT=%~dp0
 set TMP=%ROOT%tmp
 set BUILD=%ROOT%bin
+set TARGET_DIR=%TMP%
+
+if "%~1" EQU "-target" (
+	set TARGET_DIR=%~2
+	shift & shift
+)
 
 set CHOCO_DIR=%TMP%\chocoportable
 set CHOCO_BIN=%CHOCO_DIR%\bin
@@ -21,10 +27,11 @@ set BOOST_VER=1.67.0
 set BOOST_VER_UND=boost_%BOOST_VER:.=_%
 set BOOST_URL=https://dl.bintray.com/boostorg/release/%BOOST_VER%/source
 set BOOST_ARCHIVE=%BOOST_VER_UND%.7z
-set BOOST=%TMP%\%BOOST_VER_UND%
+set BOOST_TARGET=%TARGET_DIR%\%BOOST_VER_UND%
 
 set SSL_URL=https://www.openssl.org/source
 set SSL_VER=openssl-1.1.0h
+set SSL_TARGET=%TARGET_DIR%\openssl
 
 set PERL_VER=5.28.0.1
 set PERL_URL=http://strawberryperl.com/download/%PERL_VER%
@@ -66,7 +73,9 @@ call :DeleteTree %BUILD% || (echo Clean failed & exit /b 1)
 :build
 echo %0
 pushd %ROOT%
-%BOOST%\b2.exe release -sBOOST_ROOT=%BOOST% -d2 || (echo B2 failed & exit /b 1)
+set BOOST_LIBRARY_PATH=%BOOST_TARGET%
+set SSL_LIBRARY_PATH=%SSL_TARGET%
+%BOOST_TARGET%\b2.exe release -sBOOST_ROOT=%BOOST_TARGET% -d2 || (echo B2 failed & exit /b 1)
 ::var
 %BUILD%\msvc-14.1\release\address-model-64\architecture-x86\link-static\runtime-link-static\threading-multi\app1.exe || (echo app1 failed & exit /b 1)
 exit /b 0
@@ -76,8 +85,8 @@ echo %0
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 pushd %ROOT%
 md bin\build2\release
-cl App1.cpp -Fo"bin\build2\release\App1.obj" -TP /O2 /Ob2 /W3 /GR /MT /Zc:forScope /Zc:wchar_t /favor:blend /wd4675 /EHs -c -DBOOST_ALL_NO_LIB -DNDEBUG -Itmp\boost_1_67_0 -Itmp\openssl\include || (echo cl failed & exit /b 1)
-link bin\build2\release\App1.obj tmp\boost_1_67_0\stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib || (echo link failed && exit /b 1)
+cl App1.cpp -Fo"bin\build2\release\App1.obj" -TP /O2 /Ob2 /W3 /GR /MT /Zc:forScope /Zc:wchar_t /favor:blend /wd4675 /EHs -c -DBOOST_ALL_NO_LIB -DNDEBUG -I%BOOST_TARGET% -I%SLL_TARGET%\include || (echo cl failed & exit /b 1)
+link bin\build2\release\App1.obj %BOOST_TARGET%\stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib || (echo link failed && exit /b 1)
 exit /b 0
 
 :InstallChoco
@@ -102,9 +111,9 @@ exit /b 0
 echo %0
 
 if not exist %TMP%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TMP% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
-if not exist %TMP%\%BOOST_VER_UND% %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
+if not exist %BOOST_TARGET% %CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TMP%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
 ::pops ok on error?
-pushd %TMP%\%BOOST_VER_UND%
+pushd %BOOST_TARGET%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
 
@@ -124,13 +133,13 @@ exit /b 0
 
 :InstallSsl
 echo %0
-if exist %TMP%\openssl\include\openssl\opensslconf.h (echo OpenSsl present & exit /b 0)
+if exist %SSL_TARGET%\include\openssl\opensslconf.h (echo OpenSsl present & exit /b 0)
 if not exist %TMP%\%SSL_VER%.tar.gz %CHOCO_BIN%\wget.exe %SSL_URL%/%SSL_VER%.tar.gz -P %TMP% %WGET_OPT% || (echo wget failed & exit /b 1)
 if not exist %TMP%\%SSL_VER%.tar %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%SSL_VER%.tar.gz || (echo Extract failed & exit /b 1)
 if not exist %TMP%\%SSL_VER%\nul %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%SSL_VER%.tar || (echo Extract failed & exit /b 1)
-if not exist %TMP%\openssl md %TMP%\openssl || (echo md openssl failed & exit /b 1)
+if not exist %SSL_TARGET% md %SSL_TARGET% || (echo md openssl failed & exit /b 1)
 pushd %TMP%\%SSL_VER%
-%PERL% .\Configure VC-WIN64A no-asm --prefix=%TMP%\openssl --openssldir=%TMP%\openssl\ssl || (echo Ssl config failed & exit /b 1)
+%PERL% .\Configure VC-WIN64A no-asm --prefix=%SSL_TARGET% --openssldir=%SSL_TARGET%\ssl || (echo Ssl config failed & exit /b 1)
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 nmake 1>nul || (echo nmake failed & exit /b 1)
 nmake install 1>nul 2>nul || (echo nmake install failed & exit /b 1)
