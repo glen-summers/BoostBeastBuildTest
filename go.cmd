@@ -117,7 +117,17 @@ pushd %BOOST_TARGET%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
 
-set B2_OPTS=variant=debug,release link=static threading=multi runtime-link=static address-model=64 architecture=x86 --with-system --with-date_time
+set VARIANT=debug,release
+set LINK=static
+set THREADING=multi
+set RUNTIME_LINK=static
+set ADDRESS_MODEL=64
+set ARCHITECTURE=x86
+set MODULES=system,date_time
+
+if "%MODULES%" NEQ "" ( set WITH_MODULES=--with-!MODULES:,= --with-! ) else (set "WITH_MODULES=")
+
+set B2_OPTS=variant=%VARIANT% link=%LINK% threading=%THREADING% runtime-link=%RUNTIME_LINK% address-model=%ADDRESS_MODEL% architecture=%ARCHITECTURE% %WITH_MODULES%
 
 call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 
