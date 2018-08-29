@@ -113,6 +113,7 @@ echo %0
 if not exist %TMP%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TMP% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
 if not exist %BOOST_TARGET% %CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TMP%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
 ::pops ok on error?
+setlocal
 pushd %BOOST_TARGET%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
@@ -133,6 +134,7 @@ call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 
 :: boost build seems to try and link without the x64 in the lib file name, differing to auto_link.hpp rules when used in visual studio!
 copy stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib stage\lib\libboost_system-vc141-mt-s-1_67.lib || (echo lib copy failed & exit /b 1)
+endlocal
 exit /b 0
 
 :InstallPerl
@@ -151,9 +153,10 @@ if not exist %SSL_TARGET% md %SSL_TARGET% || (echo md openssl failed & exit /b 1
 pushd %TMP%\%SSL_VER%
 %PERL% .\Configure VC-WIN64A no-asm --prefix=%SSL_TARGET% --openssldir=%SSL_TARGET%\ssl || (echo Ssl config failed & exit /b 1)
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
-nmake 1>nul || (echo nmake failed & exit /b 1)
-nmake install 1>nul 2>nul || (echo nmake install failed & exit /b 1)
-::lots of 'pod2html' is not recognized but nofailure code?
+del /q %TMP%\ssl.log %TMP%\sslerr.log 2>nul
+nmake 1>%TMP%\ssl.log 2>%TMP%\sslerr.log || (echo nmake failed & exit /b 1)
+nmake install 1>>%TMP%\ssl.log 2>>%TMP%\sslerr.log || (echo nmake install failed & exit /b 1)
+::lots of 'pod2html' is not recognized but no failure code?
 :: verify by headers\libs\dlls generated?
 exit /b 0
 
