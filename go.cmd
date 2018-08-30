@@ -46,7 +46,7 @@ if "%VS_INSTALLATION_PATH%" equ "" echo Visual studio not found & exit /b 1
 set VC_VARS_64="%VS_INSTALLATION_PATH%\VC\Auxiliary\Build\vcvars64.bat"
 
 if "%1" EQU "" goto :default
-call :%1 || exit /b 1
+call :%* || exit /b 1
 exit /b 0
 
 :default
@@ -76,7 +76,12 @@ pushd %ROOT%
 set BOOST_LIBRARY_PATH=%BOOST_TARGET%
 set SSL_LIBRARY_PATH=%SSL_TARGET%
 %BOOST_TARGET%\b2.exe release -sBOOST_ROOT=%BOOST_TARGET% -d2 || (echo B2 failed & exit /b 1)
-::var
+
+:: this adds local ssl\bin to end of path, so cld still find dlls in system32 installed by existing openssl installation
+:: add warning if dlls found on existing path, or just add path to front?
+call :AddToLocalPath %SSL_TARGET%\bin
+:: cld set to env block to extend use after this script exits: setx PATH %PATH% || (echo setx failed & exit /b 1)
+::vars for all these path pieces...
 %BUILD%\msvc-14.1\release\address-model-64\architecture-x86\link-static\runtime-link-static\threading-multi\app1.exe || (echo app1 failed & exit /b 1)
 exit /b 0
 
@@ -170,6 +175,13 @@ set NewUserPath=!NewUserPath:;;=;!
 if "%NewUserPath%" EQU "%UserPath%" exit /b 0
 %SystemRoot%\System32\reg.exe ADD HKCU\Environment /v Path /t REG_EXPAND_SZ /d %NewUserPath% /f 1>nul || (echo SetReg failed & exit /b 1)
 echo %REMOVE% removed from path
+exit /b 0
+
+:AddToLocalPath
+if "!PATH:%1=!" NEQ "%PATH%" exit /b 0
+echo adding %1 to path 
+set PATH=%PATH%;%1
+set PATH=!PATH:;;=;!
 exit /b 0
 
 :SetFromReg
