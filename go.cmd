@@ -1,17 +1,17 @@
-:: Build boost beast application with ssl from inet sources
+:: Build boost beast, openssl and test application from on-line sources
 :: assumption: visual studio is installed with support for vswhere and c++ components are present
 
-::todos?
-:: convert this to msbuild as will be present with vs2017
+:: todos
+:: convert this to msbuild as will be present with vs201, for potentially a less esoteric version?
 :: add unix shell version
 :: store downloads in user profile and\or dont delete with clean
-:: add boost\openssl sourc as shallow sparse subprojects instead of wget
+:: add boost\openssl source as shallow sparse subprojects instead of using wget?
 @echo off
 cls
 setlocal EnableDelayedExpansion
 
 ::###########################################################################
-::move to separately versioned parsed file and set per branch
+:: move to separately versioned parsed file and set per branch rather than modifying main script
 set BOOST_VER=1.67.0
 set BOOST_URL=https://dl.bintray.com/boostorg/release/%BOOST_VER%/source
 
@@ -24,13 +24,13 @@ set PERL_URL=http://strawberryperl.com/download/%PERL_VER%
 
 set VSWHERE_CMD="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
 set ROOT=%~dp0
-set TMP=%ROOT%tmp
+set TEMP_DIR=%ROOT%tempFiles
 set BUILD=%ROOT%bin
 
-call :FindDirectoryAbove .\ExternalDependencies\ && set "TARGET_DIR=!DIR_ABOVE!\ExternalDependencies" || set "TARGET_DIR=!TMP!"
+call :FindDirectoryAbove .\ExternalDependencies\ && set "TARGET_DIR=!DIR_ABOVE!\ExternalDependencies" || set "TARGET_DIR=!TEMP_DIR!"
 echo Building to "%TARGET_DIR%"
 
-set CHOCO_DIR=%TMP%\chocoportable
+set CHOCO_DIR=%TEMP_DIR%\chocoportable
 set CHOCO_BIN=%CHOCO_DIR%\bin
 set CHOCO=%CHOCO_BIN%\choco.exe
 set ChocoPackages=7zip.portable;wget
@@ -42,7 +42,7 @@ set BOOST_TARGET=%TARGET_DIR%\%BOOST_VER_UND%
 set SSL_TARGET=%TARGET_DIR%\openssl
 
 set PERL_ARCHIVE=strawberry-perl-%PERL_VER%-64bit-portable
-set PERL=%TMP%\perl\perl\bin\perl.exe
+set PERL=%TEMP_DIR%\perl\perl\bin\perl.exe
 
 set WGET_OPT=--secure-protocol=auto --no-check-certificate
 ::###########################################################################
@@ -63,6 +63,10 @@ call :InstallBoost || exit /b 1
 call :InstallPerl || exit /b 1
 call :InstallSsl || exit /b 1
 
+::cleanup temp files (not orig zips)
+:: openssl-1.1.0h = 150 MB
+:: perl? keep and leave in deps dir? or just delete == 500 MB
+
 call :build || exit /b 1
 
 call :TimingEnd
@@ -70,7 +74,7 @@ exit /b 0
 
 :Clean
 call :RemoveChoco
-call :DeleteTree %TMP%
+call :DeleteTree %TEMP_DIR%
 call :DeleteTree %BUILD%
 exit /b 0
 
@@ -121,8 +125,8 @@ exit /b 0
 :InstallBoost
 echo %0
 
-if not exist %TMP%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TMP% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
-if not exist %BOOST_TARGET% %CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TMP%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
+if not exist %TEMP_DIR%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TEMP_DIR% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
+if not exist %BOOST_TARGET% %CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TEMP_DIR%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
 ::pops ok on error?
 setlocal
 pushd %BOOST_TARGET%
@@ -150,23 +154,22 @@ exit /b 0
 
 :InstallPerl
 echo %0
-if not exist %TMP%\%PERL_ARCHIVE%.zip %CHOCO_BIN%\wget.exe %PERL_URL%/%PERL_ARCHIVE%.zip -P %TMP% %WGET_OPT% || (echo wget failed & exit /b 1)
-if not exist %TMP%\perl\nul %CHOCO_BIN%\7z.exe x -aos -o%TMP%\perl %TMP%\%PERL_ARCHIVE%.zip || (echo Extract failed & exit /b 1)
+if not exist %TEMP_DIR%\%PERL_ARCHIVE%.zip %CHOCO_BIN%\wget.exe %PERL_URL%/%PERL_ARCHIVE%.zip -P %TEMP_DIR% %WGET_OPT% || (echo wget failed & exit /b 1)
+if not exist %TEMP_DIR%\perl\nul %CHOCO_BIN%\7z.exe x -aos -o%TEMP_DIR%\perl %TEMP_DIR%\%PERL_ARCHIVE%.zip || (echo Extract failed & exit /b 1)
 exit /b 0
 
 :InstallSsl
 echo %0
 if exist %SSL_TARGET%\include\openssl\opensslconf.h (echo OpenSsl present & exit /b 0)
-if not exist %TMP%\%SSL_VER%.tar.gz %CHOCO_BIN%\wget.exe %SSL_URL%/%SSL_VER%.tar.gz -P %TMP% %WGET_OPT% || (echo wget failed & exit /b 1)
-if not exist %TMP%\%SSL_VER%.tar %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%SSL_VER%.tar.gz || (echo Extract failed & exit /b 1)
-if not exist %TMP%\%SSL_VER%\nul %CHOCO_BIN%\7z.exe x -aos -o%TMP% %TMP%\%SSL_VER%.tar || (echo Extract failed & exit /b 1)
+if not exist %TEMP_DIR%\%SSL_VER%.tar.gz %CHOCO_BIN%\wget.exe %SSL_URL%/%SSL_VER%.tar.gz -P %TEMP_DIR% %WGET_OPT% || (echo wget failed & exit /b 1)
+if not exist %TEMP_DIR%\%SSL_VER%\nul %CHOCO_BIN%\7z.exe x -so %TEMP_DIR%\%SSL_VER%.tar.gz | %CHOCO_BIN%\7z.exe x -si -ttar -o%TEMP_DIR% || (echo Extract failed & exit /b 1)
 if not exist %SSL_TARGET% md %SSL_TARGET% || (echo md openssl failed & exit /b 1)
-pushd %TMP%\%SSL_VER%
+pushd %TEMP_DIR%\%SSL_VER%
 %PERL% .\Configure VC-WIN64A no-asm --prefix=%SSL_TARGET% --openssldir=%SSL_TARGET%\ssl || (echo Ssl config failed & exit /b 1)
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
-del /q %TMP%\ssl.log %TMP%\sslerr.log 2>nul
-nmake 1>%TMP%\ssl.log 2>%TMP%\sslerr.log || (echo nmake failed & exit /b 1)
-nmake install 1>>%TMP%\ssl.log 2>>%TMP%\sslerr.log || (echo nmake install failed & exit /b 1)
+del /q %TEMP_DIR%\ssl.log %TEMP_DIR%\sslerr.log 2>nul
+nmake 1>%TEMP_DIR%\ssl.log 2>%TEMP_DIR%\sslerr.log || (echo nmake failed & exit /b 1)
+nmake install 1>>%TEMP_DIR%\ssl.log 2>>%TEMP_DIR%\sslerr.log || (echo nmake install failed & exit /b 1)
 ::lots of 'pod2html' is not recognized but no failure code?
 :: verify by headers\libs\dlls generated?
 exit /b 0
