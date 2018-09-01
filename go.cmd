@@ -1,40 +1,46 @@
 :: Build boost beast application with ssl from inet sources
 :: assumption: visual studio is installed with support for vswhere and c++ components are present
+
+::todos?
+:: convert this to msbuild as will be present with vs2017
+:: add unix shell version
+:: store downloads in user profile and\or dont delete with clean
+:: add boost\openssl sourc as shallow sparse subprojects instead of wget
 @echo off
 cls
 setlocal EnableDelayedExpansion
 
 ::###########################################################################
+::move to separately versioned parsed file and set per branch
+set BOOST_VER=1.67.0
+set BOOST_URL=https://dl.bintray.com/boostorg/release/%BOOST_VER%/source
+
+set SSL_VER=openssl-1.1.0h
+set SSL_URL=https://www.openssl.org/source
+
+set PERL_VER=5.28.0.1
+set PERL_URL=http://strawberryperl.com/download/%PERL_VER%
+::###########################################################################
 
 set VSWHERE_CMD="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
-
 set ROOT=%~dp0
 set TMP=%ROOT%tmp
 set BUILD=%ROOT%bin
-set TARGET_DIR=%TMP%
 
-if "%~1" EQU "-target" (
-	set TARGET_DIR=%~2
-	shift & shift
-)
+call :FindDirectoryAbove .\ExternalDependencies\ && set "TARGET_DIR=!DIR_ABOVE!\ExternalDependencies" || set "TARGET_DIR=!TMP!"
+echo Building to "%TARGET_DIR%"
 
 set CHOCO_DIR=%TMP%\chocoportable
 set CHOCO_BIN=%CHOCO_DIR%\bin
 set CHOCO=%CHOCO_BIN%\choco.exe
 set ChocoPackages=7zip.portable;wget
 
-set BOOST_VER=1.67.0
 set BOOST_VER_UND=boost_%BOOST_VER:.=_%
-set BOOST_URL=https://dl.bintray.com/boostorg/release/%BOOST_VER%/source
 set BOOST_ARCHIVE=%BOOST_VER_UND%.7z
 set BOOST_TARGET=%TARGET_DIR%\%BOOST_VER_UND%
 
-set SSL_URL=https://www.openssl.org/source
-set SSL_VER=openssl-1.1.0h
 set SSL_TARGET=%TARGET_DIR%\openssl
 
-set PERL_VER=5.28.0.1
-set PERL_URL=http://strawberryperl.com/download/%PERL_VER%
 set PERL_ARCHIVE=strawberry-perl-%PERL_VER%-64bit-portable
 set PERL=%TMP%\perl\perl\bin\perl.exe
 
@@ -216,3 +222,14 @@ if %ss% lss 10 set ss=0%ss%
 if %cc% lss 10 set cc=0%cc%
 echo %hh%:%mm%:%ss%.%cc%
 exit /b 0
+
+:FindDirectoryAbove
+setlocal
+cd %ROOT%
+set "DIR_ABOVE="
+:dirLoop
+set "CURRENT_DIR=%cd%"
+if EXIST %1 (endlocal & set "DIR_ABOVE=%CURRENT_DIR%" & exit /b 0)
+cd..
+if "%cd%" neq "%CURRENT_DIR%" goto :dirLoop 
+exit /b 1
