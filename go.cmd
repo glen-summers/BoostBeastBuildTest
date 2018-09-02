@@ -28,7 +28,6 @@ set TEMP_DIR=%ROOT%tempFiles
 set BUILD=%ROOT%bin
 
 call :FindDirectoryAbove .\ExternalDependencies\ && set "TARGET_DIR=!DIR_ABOVE!\ExternalDependencies" || set "TARGET_DIR=!TEMP_DIR!"
-echo Building to "%TARGET_DIR%"
 
 set CHOCO_DIR=%TEMP_DIR%\chocoportable
 set CHOCO_BIN=%CHOCO_DIR%\bin
@@ -56,16 +55,16 @@ call :%* || exit /b 1
 exit /b 0
 
 :default
+echo Targeting "%TARGET_DIR%"
 call :TimingStart
 
 call :InstallChoco || exit /b 1
 call :InstallBoost || exit /b 1
+:: move installPerl to sslInstall and\or keep in dependencies
 call :InstallPerl || exit /b 1
 call :InstallSsl || exit /b 1
 
-::cleanup temp files (not orig zips)
-:: openssl-1.1.0h = 150 MB
-:: perl? keep and leave in deps dir? or just delete == 500 MB
+::cleanup perl? keep and leave in deps dir? or just delete == 500 MB
 
 call :build || exit /b 1
 
@@ -124,10 +123,10 @@ exit /b 0
 
 :InstallBoost
 echo %0
-
-if not exist %TEMP_DIR%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TEMP_DIR% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
-if not exist %BOOST_TARGET% %CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TEMP_DIR%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
-::pops ok on error?
+if not exist %BOOST_TARGET% (
+	if not exist %TEMP_DIR%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TEMP_DIR% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
+	%CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TEMP_DIR%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
+)
 setlocal
 pushd %BOOST_TARGET%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
@@ -170,8 +169,10 @@ call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 del /q %TEMP_DIR%\ssl.log %TEMP_DIR%\sslerr.log 2>nul
 nmake 1>%TEMP_DIR%\ssl.log 2>%TEMP_DIR%\sslerr.log || (echo nmake failed & exit /b 1)
 nmake install 1>>%TEMP_DIR%\ssl.log 2>>%TEMP_DIR%\sslerr.log || (echo nmake install failed & exit /b 1)
+popd
 ::lots of 'pod2html' is not recognized but no failure code?
 :: verify by headers\libs\dlls generated?
+call :DeleteTree %TEMP_DIR%\%SSL_VER%
 exit /b 0
 
 :RemoveFromUserPath
