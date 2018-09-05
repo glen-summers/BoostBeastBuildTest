@@ -12,14 +12,18 @@ setlocal EnableDelayedExpansion
 
 ::###########################################################################
 :: move to separately versioned parsed file and set per branch rather than modifying main script
-set BOOST_VER=1.67.0
+set BOOST_MAJ=1
+set BOOST_MIN=68
+set BOOST_PATCH=0
+set BOOST_VER=%BOOST_MAJ%.%BOOST_MIN%.%BOOST_PATCH%
 set BOOST_URL=https://dl.bintray.com/boostorg/release/%BOOST_VER%/source
 
-set SSL_VER=openssl-1.1.0h
+set SSL_VER=openssl-1.1.0i
 set SSL_URL=https://www.openssl.org/source
 
 set PERL_VER=5.28.0.1
 set PERL_URL=http://strawberryperl.com/download/%PERL_VER%
+
 ::###########################################################################
 
 set VSWHERE_CMD="%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
@@ -38,7 +42,7 @@ set BOOST_VER_UND=boost_%BOOST_VER:.=_%
 set BOOST_ARCHIVE=%BOOST_VER_UND%.7z
 set BOOST_TARGET=%TARGET_DIR%\%BOOST_VER_UND%
 
-set SSL_TARGET=%TARGET_DIR%\openssl
+set SSL_TARGET=%TARGET_DIR%\%SSL_VER%
 
 set PERL_ARCHIVE=strawberry-perl-%PERL_VER%-64bit-portable
 set PERL=%TEMP_DIR%\perl\perl\bin\perl.exe
@@ -49,6 +53,10 @@ set WGET_OPT=--secure-protocol=auto --no-check-certificate
 for /F "tokens=* usebackq" %%i in (`%VSWHERE_CMD%`) do set VS_INSTALLATION_PATH=%%i
 if "%VS_INSTALLATION_PATH%" equ "" echo Visual studio not found & exit /b 1
 set VC_VARS_64="%VS_INSTALLATION_PATH%\VC\Auxiliary\Build\vcvars64.bat"
+
+if not exist "%VS_INSTALLATION_PATH%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt" echo VCToolsVersion not found & exit /b 1
+set /p VC_TOOLSET_VERSION=<"%VS_INSTALLATION_PATH%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
+set VS_TOOLS_VER=vc%VC_TOOLSET_VERSION:~0,2%%VC_TOOLSET_VERSION:~3,1%
 
 if "%1" EQU "" goto :default
 call :%* || exit /b 1
@@ -100,7 +108,7 @@ call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 pushd %ROOT%
 md bin\build2\release
 cl App1.cpp -Fo"bin\build2\release\App1.obj" -TP /O2 /Ob2 /W3 /GR /MT /Zc:forScope /Zc:wchar_t /favor:blend /wd4675 /EHs -c -DBOOST_ALL_NO_LIB -DNDEBUG -I%BOOST_TARGET% -I%SLL_TARGET%\include || (echo cl failed & exit /b 1)
-link bin\build2\release\App1.obj %BOOST_TARGET%\stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib || (echo link failed && exit /b 1)
+link bin\build2\release\App1.obj %BOOST_TARGET%\stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-x64-%BOOST_MAJ%_%BOOST_MIN%.lib || (echo link failed && exit /b 1)
 exit /b 0
 
 :InstallChoco
@@ -147,7 +155,7 @@ set B2_OPTS=variant=%VARIANT% link=%LINK% threading=%THREADING% runtime-link=%RU
 call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 
 :: boost build seems to try and link without the x64 in the lib file name, differing to auto_link.hpp rules when used in visual studio!
-copy stage\lib\libboost_system-vc141-mt-s-x64-1_67.lib stage\lib\libboost_system-vc141-mt-s-1_67.lib || (echo lib copy failed & exit /b 1)
+copy stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-x64-%BOOST_MAJ%_%BOOST_MIN%.lib stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-%BOOST_MAJ%_%BOOST_MIN%.lib || (echo lib copy failed & exit /b 1)
 endlocal
 exit /b 0
 

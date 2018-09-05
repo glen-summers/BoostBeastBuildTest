@@ -5,6 +5,8 @@ using msvc ;
 import os ;
 local BOOST_LIBRARY_PATH = [ os.environ BOOST_LIBRARY_PATH ] ;
 local SSL_LIBRARY_PATH = [ os.environ SSL_LIBRARY_PATH ] ;
+local BOOST_MAJ = [ os.environ BOOST_MAJ ] ;
+local BOOST_MIN = [ os.environ BOOST_MIN ] ;
 
 project
     : requirements
@@ -17,9 +19,9 @@ project
 		<library-path>$(SSL_LIBRARY_PATH)/lib
     ;
 
-using boost : 1.67 : <include>$(BOOST_LIBRARY_PATH) <library>$(BOOST_LIBRARY_PATH)/stage/lib ;
+using boost : $(BOOST_MAJ).$(BOOST_MIN) : <include>$(BOOST_LIBRARY_PATH) <library>$(BOOST_LIBRARY_PATH)/stage/lib ;
 import boost ;
-boost.use-project 1.67 ;
+boost.use-project $(BOOST_MAJ).$(BOOST_MIN) ;
 
 lib libssl ;
 lib libcrypto ;
