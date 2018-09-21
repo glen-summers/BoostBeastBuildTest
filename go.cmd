@@ -144,9 +144,9 @@ set VARIANT=debug,release
 set LINK=static
 set THREADING=multi
 set RUNTIME_LINK=static
-set ADDRESS_MODEL=64
+set ADDRESS_MODEL=32,64
 set ARCHITECTURE=x86
-set MODULES=system,date_time
+set MODULES=system,date_time,test
 
 if "%MODULES%" NEQ "" ( set WITH_MODULES=--with-!MODULES:,= --with-! ) else (set "WITH_MODULES=")
 
