@@ -81,7 +81,7 @@ BuildBoost() {
 
 clear
 # echo "go $1..."
-# switch $1 clean etc. 
+# switch $1 clean etc..
 
 ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 TEMP_DIR="$ROOT/tempFiles"
