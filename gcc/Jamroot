@@ -1,0 +1,32 @@
+
+# use pch, add multiple test apps
+
+import os ;
+local BOOST_LIBRARY_PATH = [ os.environ BOOST_LIBRARY_PATH ] ;
+local SSL_LIBRARY_PATH = [ os.environ SSL_LIBRARY_PATH ] ;
+local BOOST_MAJ = [ os.environ BOOST_MAJ ] ;
+local BOOST_MIN = [ os.environ BOOST_MIN ] ;
+
+project
+	: requirements
+		<threading>multi 
+		<address-model>64
+		<architecture>x86
+		<link>static
+		<runtime-link>static
+		<include>$(SSL_LIBRARY_PATH)/include
+		<library-path>$(SSL_LIBRARY_PATH)/lib
+	;
+
+using boost : $(BOOST_MAJ).$(BOOST_MIN) : <include>$(BOOST_LIBRARY_PATH) <library>$(BOOST_LIBRARY_PATH)/stage/lib ;
+import boost ;
+boost.use-project $(BOOST_MAJ).$(BOOST_MIN) ;
+
+lib ssl ;
+lib crypto ;
+lib dl ;
+
+exe App1
+	: ../App1.cpp ssl crypto dl
+	: <library>/boost//system
+	;
