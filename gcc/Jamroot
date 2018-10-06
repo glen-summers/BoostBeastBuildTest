@@ -7,7 +7,7 @@ local SSL_LIBRARY_PATH = [ os.environ SSL_LIBRARY_PATH ] ;
 local BOOST_MAJ = [ os.environ BOOST_MAJ ] ;
 local BOOST_MIN = [ os.environ BOOST_MIN ] ;
 
-project
+project App
 	: requirements
 		<threading>multi 
 		<address-model>64

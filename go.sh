@@ -135,7 +135,7 @@ BuildTestApp() {
 	export BOOST_MAJ="$BOOST_MAJ"
 	export BOOST_MIN="$BOOST_MIN"
 
-	$BOOST_TARGET/b2 $B2_OPTS -sBOOST_ROOT=$BOOST_TARGET -d2 toolset=gcc || error_exit "Build failed"
+	$BOOST_TARGET/b2 $B2_OPTS -sBOOST_ROOT=$BOOST_TARGET -d2 toolset=gcc --build-dir="$ROOT/bin" || error_exit "Build failed"
 	$APP_BUILD_DIR/App1 || error_exit "App1 failed"
 	popd
 }
@@ -143,7 +143,7 @@ BuildTestApp() {
 Init() {
 	ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 	TEMP_DIR="$ROOT/tempFiles"
-	BUILD="$ROOT/gcc/bin"
+	BUILD="$ROOT/bin"
 
 	local ABOVE="$( FindDirectoryAbove $ROOT $DEP_DIR )"
 	if [[ -z "$ABOVE" ]]; then
@@ -161,7 +161,7 @@ Init() {
 	GCC_MAJ="${BASH_REMATCH[1]}"
 	GCC_MIN="${BASH_REMATCH[2]}"
 
-	APP_BUILD_DIR="$BUILD/gcc-$GCC_VER/$VARIANT/address-model-$ADDRESS_MODEL/architecture-$ARCHITECTURE/link-$LINK/runtime-link-$RUNTIME_LINK/threading-$THREADING"
+	APP_BUILD_DIR="$BUILD/App/gcc-$GCC_VER/$VARIANT/address-model-$ADDRESS_MODEL/architecture-$ARCHITECTURE/link-$LINK/runtime-link-$RUNTIME_LINK/threading-$THREADING"
 }
 
 Build() {
@@ -170,25 +170,33 @@ Build() {
 	BuildTestApp
 }
 
+CleanApp() {
+	rm -f -r "$BUILD" || error_exit "rm build dir failed"
+}
+
 Clean() {
 	rm -f -r "$TEMP_DIR" || error_exit "rm temp dir failed"
-	rm -f -r "$BUILD" || error_exit "rm build dir failed"
+	CleanApp
 }
 
 ###########################################################################
 
 clear
+Init
 
 echo "go $1..."
 case "$1" in
+	rebuild)
+		CleanApp
+		;&
 	"")
-		Init
+		;&
+	"build")
 		Build
 		;;
 	clean)
-		Init
 		Clean
 		;;
 	*)
-		error_exit "Usage: $0 {|clean}"
+		error_exit "Usage: $0 {build*|rebuild|clean}"
 esac
