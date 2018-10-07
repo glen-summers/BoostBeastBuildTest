@@ -67,10 +67,6 @@ GetTarGz() {
 }
 
 BuildBoost() {
-	local BOOST_VER_UND="boost_${BOOST_VER//./_}"
-	local BOOST_ARCHIVE="$BOOST_VER_UND.7z"
-	BOOST_TARGET="$TARGET_DIR/$BOOST_VER_UND"
-
 	if [[ -d "$BOOST_TARGET" ]]; then
 		echo "$BOOST_TARGET present, skipping download"
 	else
@@ -94,14 +90,14 @@ BuildBoost() {
 	#boost build seems to try and link without the x64\x32 in the lib file name
 	#    boost_system-gcc73-mt-s-1_68
 	# libboost_system-gcc73-mt-s-x64-1_68
-	GCC_LIB_VER="gcc$GCC_MAJ$GCC_MIN"
+	# shared link expects libboost_system-gcc73-mt-1_68
+	local GCC_LIB_VER="gcc$GCC_MAJ$GCC_MIN"
 	cp stage/lib/libboost_system-$GCC_LIB_VER-mt-s-x$ADDRESS_MODEL-$BOOST_MAJ"_"$BOOST_MIN.a stage/lib/libboost_system-$GCC_LIB_VER-mt-s-$BOOST_MAJ"_"$BOOST_MIN.a || error_exit "lib copy failed"
 
 	popd
 }
 
 BuildSsl() {
-	SSL_TARGET="$TARGET_DIR/$SSL_VER"
 	local SSL_ARCHIVE="$SSL_VER.tar.gz"
 	
 	if [[ -f "$SSL_TARGET/include/openssl/opensslconf.h" ]]; then
@@ -135,7 +131,7 @@ BuildTestApp() {
 	export BOOST_MAJ="$BOOST_MAJ"
 	export BOOST_MIN="$BOOST_MIN"
 
-	$BOOST_TARGET/b2 $B2_OPTS -sBOOST_ROOT=$BOOST_TARGET -d2 toolset=gcc --build-dir="$ROOT/bin" || error_exit "Build failed"
+	$BOOST_TARGET/b2 $B2_OPTS -sBOOST_ROOT=$BOOST_TARGET -d2 toolset=gcc --build-dir="$BUILD" || error_exit "Build failed"
 	$APP_BUILD_DIR/App1 || error_exit "App1 failed"
 	popd
 }
@@ -153,6 +149,10 @@ Init() {
 	fi
 	echo "TARGET_DIR = $TARGET_DIR"
 
+	local BOOST_VER_UND="boost_${BOOST_VER//./_}"
+	BOOST_ARCHIVE="$BOOST_VER_UND.7z"
+	BOOST_TARGET="$TARGET_DIR/$BOOST_VER_UND"
+
 	B2_OPTS="variant=$VARIANT link=$LINK threading=$THREADING runtime-link=$RUNTIME_LINK address-model=$ADDRESS_MODEL architecture=$ARCHITECTURE --layout=$LAYOUT"
 
 	local GCC_VER="$(gcc --version | grep ^gcc | sed 's/^.* //g')"
@@ -162,6 +162,8 @@ Init() {
 	GCC_MIN="${BASH_REMATCH[2]}"
 
 	APP_BUILD_DIR="$BUILD/App/gcc-$GCC_VER/$VARIANT/address-model-$ADDRESS_MODEL/architecture-$ARCHITECTURE/link-$LINK/runtime-link-$RUNTIME_LINK/threading-$THREADING"
+
+	SSL_TARGET="$TARGET_DIR/$SSL_VER"
 }
 
 Build() {
@@ -170,15 +172,37 @@ Build() {
 	BuildTestApp
 }
 
+CleanDir() {
+	rm -f -r -v "$1" || error_exit "rm $1 failed"
+}
+
+CleanTemp() {
+	CleanDir "$TEMP_DIR"
+}
+
+CleanBoostLibs() {
+	CleanDir "$BOOST_TARGET/stage/lib"
+}
+
 CleanApp() {
-	rm -f -r "$BUILD" || error_exit "rm build dir failed"
+	CleanDir "$BUILD"
 }
 
 Clean() {
-	rm -f -r "$TEMP_DIR" || error_exit "rm temp dir failed"
+	CleanTemp
+	CleanBoostLibs
 	CleanApp
 }
 
+CleanDeps() {
+	CleanDir "$BOOST_TARGET"
+	CleanDir "$SSL_TARGET"
+}
+
+Nuke() {
+	Clean
+	CleanDeps
+}
 ###########################################################################
 
 clear
@@ -197,6 +221,9 @@ case "$1" in
 	clean)
 		Clean
 		;;
+	nuke)
+		Nuke
+		;;
 	*)
-		error_exit "Usage: $0 {build*|rebuild|clean}"
+		error_exit "Usage: $0 {build*|rebuild|clean|nuke}"
 esac
