@@ -79,6 +79,10 @@ call :build || exit /b 1
 call :TimingEnd
 exit /b 0
 
+:Nuke
+call :DeleteTree %BOOST_TARGET% || exit /b 1
+call :DeleteTree %SSL_TARGET% || exit /b 1
+
 :Clean
 call :RemoveChoco
 call :DeleteTree %TEMP_DIR%
@@ -89,7 +93,8 @@ exit /b 0
 call :DeleteTree %BUILD% || (echo Clean failed & exit /b 1)
 :build
 echo %0
-pushd %ROOT%
+setlocal
+cd %ROOT%
 set BOOST_LIBRARY_PATH=%BOOST_TARGET%
 set SSL_LIBRARY_PATH=%SSL_TARGET%
 %BOOST_TARGET%\b2.exe release -sBOOST_ROOT=%BOOST_TARGET% -d2 || (echo B2 failed & exit /b 1)
@@ -104,8 +109,9 @@ exit /b 0
 
 :build2
 echo %0
+setlocal
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
-pushd %ROOT%
+cd %ROOT%
 md bin\build2\release
 cl App1.cpp -Fo"bin\build2\release\App1.obj" -TP /O2 /Ob2 /W3 /GR /MT /Zc:forScope /Zc:wchar_t /favor:blend /wd4675 /EHs -c -DBOOST_ALL_NO_LIB -DNDEBUG -I%BOOST_TARGET% -I%SLL_TARGET%\include || (echo cl failed & exit /b 1)
 link bin\build2\release\App1.obj %BOOST_TARGET%\stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-x64-%BOOST_MAJ%_%BOOST_MIN%.lib || (echo link failed && exit /b 1)
@@ -131,12 +137,12 @@ exit /b 0
 
 :InstallBoost
 echo %0
+setlocal
 if not exist %BOOST_TARGET% (
-	if not exist %TEMP_DIR%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TEMP_DIR% %WGET_OPT% || (echo Boost wget failed & exit /b 1)
+	if not exist %TEMP_DIR%\%BOOST_ARCHIVE% %CHOCO_BIN%\wget.exe %BOOST_URL%/%BOOST_ARCHIVE% -P %TEMP_DIR% %WGET_OPT% || (echo wget failed !errorlevel! & exit /b 1)
 	%CHOCO_BIN%\7z.exe x -aos -o%TARGET_DIR% %TEMP_DIR%\%BOOST_ARCHIVE% || (echo Boost Extract failed & exit /b 1)
 )
-setlocal
-pushd %BOOST_TARGET%
+cd %BOOST_TARGET%
 if not exist .\b2.exe call .\bootstrap.bat || (echo Boost Bootstrap failed & exit /b 1)
 rem if exist libs?
 
@@ -156,34 +162,35 @@ call .\b2.exe %B2_OPTS% || (echo B2 Boost build failed & exit /b 1)
 
 :: boost build seems to try and link without the x64 in the lib file name, differing to auto_link.hpp rules when used in visual studio!
 copy stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-x64-%BOOST_MAJ%_%BOOST_MIN%.lib stage\lib\libboost_system-%VS_TOOLS_VER%-mt-s-%BOOST_MAJ%_%BOOST_MIN%.lib || (echo lib copy failed & exit /b 1)
-endlocal
 exit /b 0
 
 :InstallPerl
 echo %0
-if not exist %TEMP_DIR%\%PERL_ARCHIVE%.zip %CHOCO_BIN%\wget.exe %PERL_URL%/%PERL_ARCHIVE%.zip -P %TEMP_DIR% %WGET_OPT% || (echo wget failed & exit /b 1)
+if not exist %TEMP_DIR%\%PERL_ARCHIVE%.zip %CHOCO_BIN%\wget.exe %PERL_URL%/%PERL_ARCHIVE%.zip -P %TEMP_DIR% %WGET_OPT% || (echo wget failed !errorlevel! & exit /b 1)
 if not exist %TEMP_DIR%\perl\nul %CHOCO_BIN%\7z.exe x -aos -o%TEMP_DIR%\perl %TEMP_DIR%\%PERL_ARCHIVE%.zip || (echo Extract failed & exit /b 1)
 exit /b 0
 
 :InstallSsl
 echo %0
+setlocal
 if exist %SSL_TARGET%\include\openssl\opensslconf.h (echo OpenSsl present & exit /b 0)
-if not exist %TEMP_DIR%\%SSL_VER%.tar.gz %CHOCO_BIN%\wget.exe %SSL_URL%/%SSL_VER%.tar.gz -P %TEMP_DIR% %WGET_OPT% || (echo wget failed & exit /b 1)
+if not exist %TEMP_DIR%\%SSL_VER%.tar.gz %CHOCO_BIN%\wget.exe %SSL_URL%/%SSL_VER%.tar.gz -P %TEMP_DIR% %WGET_OPT% || (echo wget failed !errorlevel! & exit /b 1)
 if not exist %TEMP_DIR%\%SSL_VER%\nul %CHOCO_BIN%\7z.exe x -so %TEMP_DIR%\%SSL_VER%.tar.gz | %CHOCO_BIN%\7z.exe x -si -ttar -o%TEMP_DIR% || (echo Extract failed & exit /b 1)
 if not exist %SSL_TARGET% md %SSL_TARGET% || (echo md openssl failed & exit /b 1)
 pushd %TEMP_DIR%\%SSL_VER%
 %PERL% .\Configure VC-WIN64A no-asm --prefix=%SSL_TARGET% --openssldir=%SSL_TARGET%\ssl || (echo Ssl config failed & exit /b 1)
 call %VC_VARS_64% || (echo vc vars failed & exit /b 1)
 del /q %TEMP_DIR%\ssl.log %TEMP_DIR%\sslerr.log 2>nul
-nmake 1>%TEMP_DIR%\ssl.log 2>%TEMP_DIR%\sslerr.log || (echo nmake failed & exit /b 1)
-nmake install 1>>%TEMP_DIR%\ssl.log 2>>%TEMP_DIR%\sslerr.log || (echo nmake install failed & exit /b 1)
-popd
+nmake 1>%TEMP_DIR%\ssl.log 2>%TEMP_DIR%\sslerr.log || (echo nmake failed check ssl.log & exit /b 1)
+nmake install 1>>%TEMP_DIR%\ssl.log 2>>%TEMP_DIR%\sslerr.log || (echo nmake install failed check ssl.log & exit /b 1)
 ::lots of 'pod2html' is not recognized but no failure code?
 :: verify by headers\libs\dlls generated?
+popd
 call :DeleteTree %TEMP_DIR%\%SSL_VER%
 exit /b 0
 
 :RemoveFromUserPath
+setlocal
 set REMOVE=%1
 rem test with spaces
 call :SetFromReg Path HKCU\Environment UserPath
@@ -207,15 +214,22 @@ set "%~3="
 for /F "skip=2 tokens=1,2*" %%N in ('%SystemRoot%\System32\reg.exe query "%~2" /v "%~1" 2^>nul') do if /I "%%N" == "%~1" set "%~3=%%P"
 exit /b 0
 
+:PrintNoRet
+<nul set /p="%*" & exit /b 0
+
 :DeleteTree
-SET /A tries=3
+if not exist "%~1" exit /b 0
+call :PrintNoRet deleting "%~1"...
+setlocal
+set /a tries=0
 :loop
-if not exist %1 exit /b 0
-if %tries% EQU 0 (echo Failed to delete %1 & exit /b 1)
-set /A tries-=1
-rd %1 /S /Q
-if exist %1 echo Retry... Err:%ERRORLEVEL% & goto :loop
-exit /b 0
+set /a tries+=1
+rd "%~1" /s /q || call :PrintNoRet %tries%.
+timeout 1 >nul
+if not exist "%~1" (echo deleted & exit /b 0)
+if %tries% neq 10 goto :loop
+echo failed to delete, retries exceeded 
+exit /b 1
 
 :TimingStart
 for /F "tokens=1-4 delims=:.," %%a in ("%time%") do (
