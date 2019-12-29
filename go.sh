@@ -2,13 +2,13 @@
 
 ###########################################################################
 BOOST_MAJ=1
-BOOST_MIN=68
+BOOST_MIN=72
 BOOST_PATCH=0
 BOOST_VER=${BOOST_MAJ}.${BOOST_MIN}.${BOOST_PATCH}
 BOOST_URL=https://dl.bintray.com/boostorg/release/${BOOST_VER}/source
 DEP_DIR=ExternalDependencies
 
-SSL_VER=openssl-1.1.0i
+SSL_VER=openssl-1.1.1d
 SSL_URL=https://www.openssl.org/source
 
 WGET_OPT="--secure-protocol=auto --no-check-certificate"
@@ -93,7 +93,7 @@ BuildBoost() {
 	#    boost_system-gcc73-mt-s-1_68
 	# libboost_system-gcc73-mt-s-x64-1_68
 	# shared link expects libboost_system-gcc73-mt-1_68
-	local GCC_LIB_VER="gcc${GCC_MAJ}${GCC_MIN}"
+	local GCC_LIB_VER="gcc${GCC_MAJ}"
 	cp stage/lib/libboost_system-${GCC_LIB_VER}-mt-s-x${ADDRESS_MODEL}-${BOOST_MAJ}"_"${BOOST_MIN}.a stage/lib/libboost_system-${GCC_LIB_VER}-mt-s-${BOOST_MAJ}"_"${BOOST_MIN}.a || ErrorExit "lib copy failed"
 
 	popd >/dev/null
@@ -101,7 +101,7 @@ BuildBoost() {
 
 BuildSsl() {
 	local SSL_ARCHIVE="${SSL_VER}.tar.gz"
-	
+
 	if [[ -f "${SSL_TARGET}/include/openssl/opensslconf.h" ]]; then
 		echo "openssl present"
 	else
@@ -163,7 +163,7 @@ Init() {
 	GCC_MAJ="${BASH_REMATCH[1]}"
 	GCC_MIN="${BASH_REMATCH[2]}"
 
-	APP_BUILD_DIR="${BUILD}/App/gcc-${GCC_VER}/${VARIANT}/address-model-${ADDRESS_MODEL}/architecture-${ARCHITECTURE}/link-${LINK}/runtime-link-${RUNTIME_LINK}/threading-${THREADING}"
+	APP_BUILD_DIR="${BUILD}/App/gcc-${GCC_MAJ}/${VARIANT}/address-model-${ADDRESS_MODEL}/architecture-${ARCHITECTURE}/link-${LINK}/runtime-link-${RUNTIME_LINK}/threading-${THREADING}"
 
 	SSL_TARGET="${TARGET_DIR}/${SSL_VER}"
 }

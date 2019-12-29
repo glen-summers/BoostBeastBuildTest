@@ -49,10 +49,10 @@ public:
 private:
 	void Resolve(const std::string& host, const std::string& port);
 	void OnResolve(tcp::resolver::results_type results);
-	
+
 	void OnConnect();
 	void OnProxyConnect();
-	
+
 	void Handshake();
 	void OnSslHandshake();
 	void OnHandshake();
@@ -62,7 +62,7 @@ private:
 
 	void Read();
 	void OnRead();
-	
+
 	void Close();
 	void OnClose() const;
 
@@ -201,7 +201,7 @@ void HttpsAsyncWebSocketTest::Read()
 void HttpsAsyncWebSocketTest::OnRead()
 {
 	// continual read call Read(); check close causes cleanish exit
-	std::cout << buffers(buffer.data()) << std::endl;
+	std::cout << make_printable(buffer.data()) << std::endl;
 	Close();
 
 	// for continual reads neex external stop stimulus
@@ -225,7 +225,7 @@ void HttpsAsyncWebSocketTest::Close()
 
 void HttpsAsyncWebSocketTest::OnClose() const
 {
-	// std::cout << buffers(buffer.data()) << std::endl;
+	// std::cout << make_printable(buffer.data()) << std::endl;
 }
 
 int main()
